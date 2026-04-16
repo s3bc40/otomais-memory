@@ -19,6 +19,8 @@ will be added incrementally. Keep architecture decisions open to those additions
 - Django 5.2 LTS
 - Database: SQLite in dev, PostgreSQL in prod
 - Tests: pytest + pytest-django
+- HTTP client: httpx
+- Env vars: environs (`env.str`, `env.bool`, etc.) — reads from `.env` via `env.read_env()`
 
 ## Conventions
 
@@ -26,5 +28,5 @@ will be added incrementally. Keep architecture decisions open to those additions
 - App URLs live in `encyclopedia/urls.py`, included from `otomais/urls.py`
 - Models always define `__str__` and `class Meta` with `verbose_name`
 - No business logic in views — it goes in services (`encyclopedia/services/`)
-- Sensitive environment variables are read via `python-decouple` (`.env` file)
+- Sensitive environment variables are read via `environs` (`.env` file)
 - Never commit `SECRET_KEY` or credentials to version control
