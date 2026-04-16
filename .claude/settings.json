@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv *)",
+      "Bash(python manage.py *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git status *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ruff format . 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
