@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Équipements — Les Mémoires d'Otomaï</title>
+</head>
+<body>
+
+<h1>Équipements</h1>
+
+<form method="get" action="">
+  <input
+    type="search"
+    name="q"
+    value="{{ current_q }}"
+    placeholder="Rechercher un équipement…"
+  >
+  <select name="type">
+    <option value="">Tous les types</option>
+    {% for item_type in item_types %}
+      <option value="{{ item_type.ankama_id }}"
+        {% if item_type.ankama_id|stringformat:"s" == current_type %}selected{% endif %}>
+        {{ item_type.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filtrer</button>
+  {% if current_q or current_type %}
+    <a href="{% url 'encyclopedia:equipment-list' %}">Réinitialiser</a>
+  {% endif %}
+</form>
+
+{% if equipment_list %}
+  <ul>
+    {% for equipment in equipment_list %}
+      <li>
+        <a href="{% url 'encyclopedia:equipment-detail' ankama_id=equipment.ankama_id %}">
+          {% if equipment.image_icon_url %}
+            <img src="{{ equipment.image_icon_url }}" alt="{{ equipment.name }}" width="64" height="64">
+          {% endif %}
+          <strong>{{ equipment.name }}</strong>
+          — {{ equipment.item_type.name }}
+          — Niv. {{ equipment.level }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Aucun équipement trouvé.</p>
+{% endif %}
+
+{% if is_paginated %}
+  <nav>
+    {% if page_obj.has_previous %}
+      <a href="?{% if current_q %}q={{ current_q }}&{% endif %}{% if current_type %}type={{ current_type }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
+    {% endif %}
+
+    <span>Page {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+      <a href="?{% if current_q %}q={{ current_q }}&{% endif %}{% if current_type %}type={{ current_type }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
+    {% endif %}
+  </nav>
+{% endif %}
+
+</body>
+</html>
