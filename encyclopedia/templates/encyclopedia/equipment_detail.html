@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ equipment.name }} — Les Mémoires d'Otomaï</title>
+</head>
+<body>
+
+<p><a href="{% url 'encyclopedia:equipment-list' %}">← Retour à la liste</a></p>
+
+<article>
+  {% if equipment.image_sd_url %}
+    <img src="{{ equipment.image_sd_url }}" alt="{{ equipment.name }}">
+  {% endif %}
+
+  <h1>{{ equipment.name }}</h1>
+
+  <p>
+    <span>{{ equipment.item_type.name }}</span>
+    &mdash;
+    Niveau {{ equipment.level }}
+  </p>
+
+  <section>
+    <h2>Effets</h2>
+    <p>Les effets seront affichés ici après la synchronisation des statistiques.</p>
+  </section>
+</article>
+
+</body>
+</html>

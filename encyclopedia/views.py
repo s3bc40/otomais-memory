@@ -1,4 +1,4 @@
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from .models import Equipment, ItemType
 
@@ -25,3 +25,11 @@ class EquipmentListView(ListView):
         ctx["current_q"] = self.request.GET.get("q", "")
         ctx["current_type"] = self.request.GET.get("type", "")
         return ctx
+
+
+class EquipmentDetailView(DetailView):
+    model = Equipment
+    template_name = "encyclopedia/equipment_detail.html"
+    context_object_name = "equipment"
+    slug_field = "ankama_id"
+    slug_url_kwarg = "ankama_id"
