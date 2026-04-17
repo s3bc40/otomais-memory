@@ -51,9 +51,7 @@ class Command(BaseCommand):
                     updated += 1
             except Exception as e:
                 errors += 1
-                self.stderr.write(
-                    f"Error on ankama_id={item.get('ankama_id')}: {e}"
-                )
+                self.stderr.write(f"Error on ankama_id={item.get('ankama_id')}: {e}")
 
         self.stdout.write(
             self.style.SUCCESS(

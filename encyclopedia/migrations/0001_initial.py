@@ -5,40 +5,61 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ItemType',
+            name="ItemType",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('slug', models.SlugField(unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("slug", models.SlugField(unique=True)),
             ],
             options={
-                'verbose_name': 'item type',
-                'verbose_name_plural': 'item types',
-                'ordering': ['name'],
+                "verbose_name": "item type",
+                "verbose_name_plural": "item types",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Equipment',
+            name="Equipment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('slug', models.SlugField(unique=True)),
-                ('level', models.PositiveSmallIntegerField()),
-                ('description', models.TextField(blank=True)),
-                ('item_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='equipment', to='encyclopedia.itemtype')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("slug", models.SlugField(unique=True)),
+                ("level", models.PositiveSmallIntegerField()),
+                ("description", models.TextField(blank=True)),
+                (
+                    "item_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="equipment",
+                        to="encyclopedia.itemtype",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'equipment',
-                'verbose_name_plural': 'equipment',
-                'ordering': ['level', 'name'],
+                "verbose_name": "equipment",
+                "verbose_name_plural": "equipment",
+                "ordering": ["level", "name"],
             },
         ),
     ]

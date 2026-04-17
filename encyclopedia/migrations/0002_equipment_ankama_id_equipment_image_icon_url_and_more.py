@@ -4,35 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('encyclopedia', '0001_initial'),
+        ("encyclopedia", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='equipment',
-            name='ankama_id',
+            model_name="equipment",
+            name="ankama_id",
             field=models.IntegerField(null=True, unique=True),
         ),
         migrations.AddField(
-            model_name='equipment',
-            name='image_icon_url',
+            model_name="equipment",
+            name="image_icon_url",
             field=models.URLField(blank=True),
         ),
         migrations.AddField(
-            model_name='equipment',
-            name='image_sd_url',
+            model_name="equipment",
+            name="image_sd_url",
             field=models.URLField(blank=True),
         ),
         migrations.AddField(
-            model_name='itemtype',
-            name='ankama_id',
+            model_name="itemtype",
+            name="ankama_id",
             field=models.IntegerField(null=True, unique=True),
         ),
         migrations.AlterField(
-            model_name='equipment',
-            name='slug',
-            field=models.SlugField(blank=True, default='', unique=True),
+            model_name="equipment",
+            name="slug",
+            field=models.SlugField(blank=True, default="", unique=True),
         ),
     ]

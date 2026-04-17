@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('encyclopedia', '0002_equipment_ankama_id_equipment_image_icon_url_and_more'),
+        ("encyclopedia", "0002_equipment_ankama_id_equipment_image_icon_url_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='equipment',
-            name='slug',
-            field=models.SlugField(blank=True, default=''),
+            model_name="equipment",
+            name="slug",
+            field=models.SlugField(blank=True, default=""),
         ),
     ]
