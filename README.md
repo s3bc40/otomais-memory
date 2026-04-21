@@ -36,10 +36,20 @@ uv run ruff check .
 uv run ruff format .
 ```
 
+## Data sync
+
+Equipment data is sourced from [dofusdude](https://docs.dofusdu.de/) via a single gzip-compressed request to the `/all` endpoint.
+
+```bash
+uv run python manage.py sync_equipment
+```
+
+Syncs ~4 350 items and ~27 000 effects in under 10 seconds. The command is idempotent — safe to re-run at any time.
+
 ## Roadmap
 
-- [ ] Equipment data model and admin interface
-- [ ] Browse and search encyclopedia views
-- [ ] REST API (Django REST Framework)
+- [x] Equipment data model and admin interface
+- [x] Browse and search encyclopedia views
+- [x] REST API (Django REST Framework)
 - [ ] MCP server integration
 - [ ] AI-powered features
