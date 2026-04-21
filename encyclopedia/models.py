@@ -27,7 +27,21 @@ class Equipment(models.Model):
     )
     image_icon_url = models.URLField(blank=True)
     image_sd_url = models.URLField(blank=True)
+    image_hq_url = models.URLField(blank=True)
+    image_hd_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
+    pods = models.IntegerField(null=True, blank=True)
+    is_weapon = models.BooleanField(default=False, null=True, blank=True)
+    critical_hit_probability = models.IntegerField(null=True, blank=True)
+    critical_hit_bonus = models.IntegerField(null=True, blank=True)
+    max_cast_per_turn = models.IntegerField(null=True, blank=True)
+    ap_cost = models.IntegerField(null=True, blank=True)
+    range_min = models.IntegerField(null=True, blank=True)
+    range_max = models.IntegerField(null=True, blank=True)
+    parent_set_id = models.IntegerField(null=True, blank=True)
+    parent_set_name = models.CharField(max_length=255, blank=True)
+    recipe = models.JSONField(default=list, null=True, blank=True)
+    conditions = models.JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         verbose_name = "equipment"
@@ -36,3 +50,27 @@ class Equipment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} (lvl {self.level})"
+
+
+class EquipmentEffect(models.Model):
+    equipment = models.ForeignKey(
+        Equipment,
+        on_delete=models.CASCADE,
+        related_name="effects",
+    )
+    effect_type_id = models.IntegerField()
+    effect_type_name = models.CharField(max_length=255)
+    effect_type_is_active = models.BooleanField(default=False)
+    effect_type_is_meta = models.BooleanField(default=False)
+    int_minimum = models.IntegerField(default=0)
+    int_maximum = models.IntegerField(default=0)
+    ignore_int_min = models.BooleanField(default=False)
+    ignore_int_max = models.BooleanField(default=False)
+    formatted = models.CharField(max_length=512, blank=True)
+
+    class Meta:
+        verbose_name = "equipment effect"
+        verbose_name_plural = "equipment effects"
+
+    def __str__(self) -> str:
+        return f"{self.effect_type_name} ({self.formatted})"
