@@ -23,6 +23,36 @@ will be added incrementally. Keep architecture decisions open to those additions
 - Tests: pytest + pytest-django
 - HTTP client: httpx
 - Env vars: environs (`env.str`, `env.bool`, etc.) — reads from `.env` via `env.read_env()`
+- Container: Docker + docker compose (local dev), Gunicorn (prod entrypoint)
+
+## Environment variables
+
+Copy `.env.example` to `.env` and fill in values. Required variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | — (required) | Django secret key |
+| `DEBUG` | `False` | Enable debug mode |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated allowed hosts |
+| `DATABASE_URL` | `sqlite:///db.sqlite3` | Database URL (SQLite or PostgreSQL) |
+
+PostgreSQL example: `DATABASE_URL=postgres://user:password@host:5432/dbname`
+
+## Container setup
+
+```bash
+# Copy and edit env file
+cp .env.example .env
+
+# Build and start (live reload, SQLite)
+docker compose up --build
+
+# App available at http://localhost:8000
+```
+
+The docker compose setup mounts the source directory so code changes are reflected without rebuilding.
+
+For production (EC2 + PostgreSQL), set `DATABASE_URL` to a PostgreSQL URL, `DEBUG=False`, and update `SECRET_KEY` and `ALLOWED_HOSTS`. The same image uses Gunicorn as entrypoint.
 
 ## Data sync
 
@@ -38,6 +68,10 @@ Two perf decisions to keep:
 Tests live in `encyclopedia/tests/` (one file per source file). Shared fixtures are in `conftest.py`.
 No real HTTP calls — mock `httpx.get` at the module level with `unittest.mock.patch`.
 CI runs on every push and PR to `main` via `.github/workflows/ci.yml` (lint → format check → pytest).
+
+## Workflow
+
+At the end of each completed step, always write a PM report covering: what changed, the commit hash, test results, and any notable decisions or bugs fixed.
 
 ## Conventions
 

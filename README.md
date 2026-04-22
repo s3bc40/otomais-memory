@@ -14,9 +14,28 @@ Provide a comprehensive, browsable reference for all in-game equipment: weapons,
 
 ## Getting started
 
+### With Docker (recommended)
+
+```bash
+# Copy and configure environment
+cp .env.example .env
+
+# Build and start (SQLite, live reload)
+docker compose up --build
+```
+
+App is available at <http://localhost:8000>.
+
+Code changes are reflected immediately — no rebuild needed.
+
+### Without Docker
+
 ```bash
 # Install dependencies
 uv sync
+
+# Copy and configure environment
+cp .env.example .env
 
 # Apply migrations
 uv run python manage.py migrate
