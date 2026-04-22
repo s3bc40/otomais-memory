@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('encyclopedia', '0005_set_seteffect'),
+        ("encyclopedia", "0005_set_seteffect"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='set',
-            name='slug',
-            field=models.SlugField(blank=True, default=''),
+            model_name="set",
+            name="slug",
+            field=models.SlugField(blank=True, default=""),
         ),
     ]
