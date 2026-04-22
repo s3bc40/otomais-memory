@@ -72,9 +72,9 @@ Syncs ~4 350 items and ~27 000 effects in under 10 seconds. The command is idemp
 - [x] REST API (Django REST Framework)
 - [x] `sync_equipment` — full field mapping + EquipmentEffect sync
 - [x] MCP server — stdio transport, local Claude Code integration
-- [ ] Tests — pytest-django: models, sync, DRF API client
-- [ ] Set + SetEffect models, migration, and `sync_sets` command
-- [ ] Dockerfile + docker-compose local stack
+- [x] Tests — pytest-django: models, sync, DRF API client
+- [x] Set + SetEffect models, migration, and `sync_sets` command
+- [x] Dockerfile + docker-compose local stack
 - [ ] Serializers updated for sets and effects
 - [ ] MCP tools updated for sets + cloud deployment (AWS ECS / streamable-http)
 - [ ] Architecture diagram + final README
