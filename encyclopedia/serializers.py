@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Equipment, ItemType, Set, SetEffect
+from .models import Equipment, EquipmentEffect, ItemType, Set, SetEffect
 
 
 class ItemTypeSerializer(serializers.ModelSerializer):
@@ -17,8 +17,29 @@ class EquipmentListSerializer(serializers.ModelSerializer):
         fields = ("ankama_id", "name", "level", "item_type", "image_icon_url")
 
 
+class EquipmentEffectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EquipmentEffect
+        fields = (
+            "effect_type_id",
+            "effect_type_name",
+            "effect_type_is_active",
+            "effect_type_is_meta",
+            "int_minimum",
+            "int_maximum",
+            "ignore_int_min",
+            "ignore_int_max",
+            "formatted",
+        )
+
+
 class EquipmentDetailSerializer(serializers.ModelSerializer):
     item_type = ItemTypeSerializer(read_only=True)
+    effects = EquipmentEffectSerializer(
+        many=True,
+        read_only=True,
+        source="effects.all",
+    )
 
     class Meta:
         model = Equipment
@@ -28,8 +49,24 @@ class EquipmentDetailSerializer(serializers.ModelSerializer):
             "slug",
             "level",
             "item_type",
+            "image_icon_url",
             "image_sd_url",
+            "image_hq_url",
+            "image_hd_url",
             "description",
+            "pods",
+            "is_weapon",
+            "critical_hit_probability",
+            "critical_hit_bonus",
+            "max_cast_per_turn",
+            "ap_cost",
+            "range_min",
+            "range_max",
+            "parent_set_id",
+            "parent_set_name",
+            "recipe",
+            "conditions",
+            "effects",
         )
 
 
