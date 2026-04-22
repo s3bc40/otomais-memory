@@ -37,6 +37,9 @@ uv sync
 # Copy and configure environment
 cp .env.example .env
 
+# Run this one liner cmd to generate your local secret key and add to your .env
+uv run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
 # Apply migrations
 uv run python manage.py migrate
 
@@ -55,15 +58,74 @@ uv run ruff check .
 uv run ruff format .
 ```
 
+## REST API
+
+Base URL: `http://localhost:8000/api/`
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/equipment/` | Paginated equipment list. Supports `?q=name` and `?type=<ankama_id>`. |
+| `GET /api/equipment/<ankama_id>/` | Full equipment detail. |
+| `GET /api/item-types/` | All item types (unpaginated). |
+| `GET /api/sets/` | Paginated set list. Supports `?q=name` and `?level=<level>`. |
+| `GET /api/sets/<ankama_id>/` | Full set detail with nested effects per pieces count. |
+
+All list endpoints return 24 results per page. Navigate with `?page=2`.
+
 ## Data sync
 
-Equipment data is sourced from [dofusdude](https://docs.dofusdu.de/) via a single gzip-compressed request to the `/all` endpoint.
+Equipment and set data are sourced from [dofusdude](https://docs.dofusdu.de/) via single gzip-compressed requests to the `/all` endpoints.
 
 ```bash
 uv run python manage.py sync_equipment
+uv run python manage.py sync_sets
 ```
 
-Syncs ~4 350 items and ~27 000 effects in under 10 seconds. The command is idempotent — safe to re-run at any time.
+Both commands are idempotent — safe to re-run at any time. `sync_equipment` syncs ~4 350 items and ~27 000 effects in under 10 seconds.
+
+## MCP server
+
+The MCP server exposes equipment search and detail tools over **stdio**, allowing Claude Code to query the encyclopedia directly.
+
+### Run locally
+
+Both the Django app and the MCP server must be running at the same time.
+
+```bash
+# Terminal 1 — Django REST API (MCP server calls this)
+uv run python manage.py runserver
+
+# Terminal 2 — MCP server (stdio transport)
+uv run python mcp_server/server.py
+```
+
+The `.mcp.json` at the repo root registers the server automatically with Claude Code. Once both processes are up, open Claude Code in this directory and the `otomais` tools will be available.
+
+### Inspect with MCP Inspector
+
+[MCP Inspector](https://github.com/modelcontextprotocol/inspector) is an interactive browser UI for testing tools and resources manually without involving Claude.
+
+```bash
+# Terminal 1 — Django REST API must be running first
+uv run python manage.py runserver
+
+# Terminal 2 — launch the inspector UI (opens http://localhost:6274)
+npx @modelcontextprotocol/inspector
+```
+
+In the inspector UI, set the command to `uv run python mcp_server/server.py` and click **Connect**. Then:
+
+1. Under **Resources**, click `equipment://types` to verify item types load.
+2. Under **Tools**, call `search_equipment` with `{"name": "gelano"}` to test search.
+3. Call `get_equipment_detail` with the `ankama_id` returned from the search.
+
+### Available tools and resources
+
+| Name | Type | Description |
+|---|---|---|
+| `equipment://types` | Resource | All item types with their `ankama_id`. Read before filtering by type. |
+| `search_equipment` | Tool | Search equipment by name, optionally filtered by `type_id`. |
+| `get_equipment_detail` | Tool | Full detail for a single item by `ankama_id`. |
 
 ## Roadmap
 
@@ -75,6 +137,6 @@ Syncs ~4 350 items and ~27 000 effects in under 10 seconds. The command is idemp
 - [x] Tests — pytest-django: models, sync, DRF API client
 - [x] Set + SetEffect models, migration, and `sync_sets` command
 - [x] Dockerfile + docker-compose local stack
-- [ ] Serializers updated for sets and effects
+- [x] Sets API — list + detail endpoints with nested effects
 - [ ] MCP tools updated for sets + cloud deployment (AWS ECS / streamable-http)
 - [ ] Architecture diagram + final README
