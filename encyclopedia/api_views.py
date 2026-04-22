@@ -1,10 +1,12 @@
 from rest_framework import viewsets
 
-from .models import Equipment, ItemType
+from .models import Equipment, ItemType, Set
 from .serializers import (
     EquipmentDetailSerializer,
     EquipmentListSerializer,
     ItemTypeSerializer,
+    SetDetailSerializer,
+    SetListSerializer,
 )
 
 
@@ -31,3 +33,21 @@ class ItemTypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ItemTypeSerializer
     lookup_field = "ankama_id"
     pagination_class = None
+
+
+class SetViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Set.objects.prefetch_related("effects").order_by("level", "name")
+    lookup_field = "ankama_id"
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return SetDetailSerializer
+        return SetListSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if level := self.request.query_params.get("level"):
+            qs = qs.filter(level=level)
+        if q := self.request.query_params.get("q"):
+            qs = qs.filter(name__icontains=q)
+        return qs
