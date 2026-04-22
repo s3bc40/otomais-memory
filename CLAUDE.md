@@ -31,6 +31,12 @@ Two perf decisions to keep:
 - `transaction.atomic()` wraps the entire loop — avoids one disk flush per query on SQLite (193s → ~5s)
 - `ItemType` is loaded into a dict before the loop — avoids ~4 350 `get_or_create` DB hits at runtime
 
+## Testing
+
+Tests live in `encyclopedia/tests/` (one file per source file). Shared fixtures are in `conftest.py`.
+No real HTTP calls — mock `httpx.get` at the module level with `unittest.mock.patch`.
+CI runs on every push and PR to `main` via `.github/workflows/ci.yml` (lint → format check → pytest).
+
 ## Conventions
 
 - All views use class-based views (CBV)
