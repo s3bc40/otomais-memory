@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from encyclopedia.models import Equipment, EquipmentEffect, ItemType
+from encyclopedia.models import Equipment, EquipmentEffect, ItemType, Set, SetEffect
 
 
 @admin.register(ItemType)
@@ -113,3 +113,50 @@ class EquipmentEffectAdmin(admin.ModelAdmin):
     ]
     list_filter = ["effect_type_is_active", "effect_type_is_meta"]
     search_fields = ["effect_type_name", "equipment__name"]
+
+
+class SetEffectInline(admin.TabularInline):
+    model = SetEffect
+    extra = 0
+    readonly_fields = [
+        "pieces_count",
+        "effect_type_name",
+        "effect_type_is_active",
+        "effect_type_is_meta",
+        "int_minimum",
+        "int_maximum",
+        "formatted",
+    ]
+    fields = [
+        "pieces_count",
+        "effect_type_name",
+        "effect_type_is_active",
+        "effect_type_is_meta",
+        "int_minimum",
+        "int_maximum",
+        "formatted",
+    ]
+
+
+@admin.register(Set)
+class SetAdmin(admin.ModelAdmin):
+    list_display = ["ankama_id", "name", "level", "items_count", "contains_cosmetics"]
+    search_fields = ["name"]
+    list_filter = ["contains_cosmetics", "contains_cosmetics_only"]
+    prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ["ankama_id"]
+    inlines = [SetEffectInline]
+
+
+@admin.register(SetEffect)
+class SetEffectAdmin(admin.ModelAdmin):
+    list_display = [
+        "set",
+        "pieces_count",
+        "effect_type_name",
+        "int_minimum",
+        "int_maximum",
+        "formatted",
+    ]
+    list_filter = ["pieces_count", "effect_type_is_active", "effect_type_is_meta"]
+    search_fields = ["effect_type_name", "set__name"]

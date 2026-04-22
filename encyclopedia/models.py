@@ -74,3 +74,48 @@ class EquipmentEffect(models.Model):
 
     def __str__(self) -> str:
         return f"{self.effect_type_name} ({self.formatted})"
+
+
+class Set(models.Model):
+    ankama_id = models.IntegerField(unique=True)
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(blank=True, default="")
+    level = models.IntegerField(default=0)
+    items_count = models.IntegerField(default=0)
+    equipment_ids = models.JSONField(default=list)
+    contains_cosmetics = models.BooleanField(default=False)
+    contains_cosmetics_only = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "set"
+        verbose_name_plural = "sets"
+        ordering = ["level", "name"]
+
+    def __str__(self) -> str:
+        return f"{self.name} (lv. {self.level})"
+
+
+class SetEffect(models.Model):
+    set = models.ForeignKey(
+        Set,
+        on_delete=models.CASCADE,
+        related_name="effects",
+    )
+    pieces_count = models.IntegerField()
+    effect_type_id = models.IntegerField()
+    effect_type_name = models.CharField(max_length=255)
+    effect_type_is_active = models.BooleanField(default=False)
+    effect_type_is_meta = models.BooleanField(default=False)
+    int_minimum = models.IntegerField(default=0)
+    int_maximum = models.IntegerField(default=0)
+    ignore_int_min = models.BooleanField(default=False)
+    ignore_int_max = models.BooleanField(default=False)
+    formatted = models.CharField(max_length=512, blank=True)
+
+    class Meta:
+        verbose_name = "set effect"
+        verbose_name_plural = "set effects"
+        ordering = ["pieces_count"]
+
+    def __str__(self) -> str:
+        return f"{self.set.name} — {self.pieces_count} pieces: {self.formatted}"
