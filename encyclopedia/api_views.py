@@ -11,7 +11,11 @@ from .serializers import (
 
 
 class EquipmentViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Equipment.objects.select_related("item_type").order_by("level", "name")
+    queryset = (
+        Equipment.objects.select_related("item_type")
+        .prefetch_related("effects")
+        .order_by("level", "name")
+    )
     lookup_field = "ankama_id"
 
     def get_serializer_class(self):
@@ -25,6 +29,8 @@ class EquipmentViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(item_type__ankama_id=type_)
         if q := self.request.query_params.get("q"):
             qs = qs.filter(name__icontains=q)
+        if (is_weapon := self.request.query_params.get("is_weapon")) is not None:
+            qs = qs.filter(is_weapon=is_weapon.lower() in ("true", "1"))
         return qs
 
 
@@ -50,4 +56,8 @@ class SetViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(level=level)
         if q := self.request.query_params.get("q"):
             qs = qs.filter(name__icontains=q)
+        if (min_level := self.request.query_params.get("min_level")) is not None:
+            qs = qs.filter(level__gte=int(min_level))
+        if (max_level := self.request.query_params.get("max_level")) is not None:
+            qs = qs.filter(level__lte=int(max_level))
         return qs

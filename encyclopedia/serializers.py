@@ -11,10 +11,24 @@ class ItemTypeSerializer(serializers.ModelSerializer):
 
 class EquipmentListSerializer(serializers.ModelSerializer):
     item_type = ItemTypeSerializer(read_only=True)
+    effects = serializers.SerializerMethodField()
+
+    def get_effects(self, obj: Equipment) -> list[str]:
+        return [e.formatted for e in obj.effects.all()]
 
     class Meta:
         model = Equipment
-        fields = ("ankama_id", "name", "level", "item_type", "image_icon_url")
+        fields = (
+            "ankama_id",
+            "name",
+            "level",
+            "item_type",
+            "image_icon_url",
+            "is_weapon",
+            "pods",
+            "parent_set_name",
+            "effects",
+        )
 
 
 class EquipmentEffectSerializer(serializers.ModelSerializer):
@@ -71,6 +85,14 @@ class EquipmentDetailSerializer(serializers.ModelSerializer):
 
 
 class SetListSerializer(serializers.ModelSerializer):
+    effects_by_pieces = serializers.SerializerMethodField()
+
+    def get_effects_by_pieces(self, obj: Set) -> dict[int, list[str]]:
+        grouped: dict[int, list[str]] = {}
+        for effect in obj.effects.all():
+            grouped.setdefault(effect.pieces_count, []).append(effect.formatted)
+        return grouped
+
     class Meta:
         model = Set
         fields = (
@@ -81,6 +103,7 @@ class SetListSerializer(serializers.ModelSerializer):
             "items_count",
             "contains_cosmetics",
             "contains_cosmetics_only",
+            "effects_by_pieces",
         )
 
 
@@ -107,6 +130,16 @@ class SetDetailSerializer(serializers.ModelSerializer):
         read_only=True,
         source="effects.all",
     )
+    equipment_list = serializers.SerializerMethodField()
+
+    def get_equipment_list(self, obj: Set) -> list[dict]:
+        items = (
+            Equipment.objects.filter(ankama_id__in=obj.equipment_ids or [])
+            .select_related("item_type")
+            .prefetch_related("effects")
+            .order_by("level", "name")
+        )
+        return EquipmentListSerializer(items, many=True).data
 
     class Meta:
         model = Set
@@ -120,4 +153,5 @@ class SetDetailSerializer(serializers.ModelSerializer):
             "contains_cosmetics_only",
             "equipment_ids",
             "effects",
+            "equipment_list",
         )
