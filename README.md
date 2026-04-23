@@ -1,147 +1,131 @@
 # Les Mémoires d'Otomaï
 
-A web encyclopedia of equipment from the game [Dofus](https://www.dofus.com), named after the NPC Otomaï.
+Django 5.2 backend exposing a Dofus encyclopedia API and a native MCP server for AI-assisted equipment and set queries.
 
-## Goal
+![Python](https://img.shields.io/badge/Python-3.12-3776ab?logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.2_LTS-092e20?logo=django&logoColor=white)
+![DRF](https://img.shields.io/badge/DRF-REST_API-a30000?logo=django&logoColor=white)
+![FastMCP](https://img.shields.io/badge/FastMCP-MCP_server-6f42c1)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-prod-4169e1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-compose-2496ed?logo=docker&logoColor=white)
+![CI](https://img.shields.io/github/actions/workflow/status/s3bc40/otomais-memory/ci.yml?branch=main&label=CI)
 
-Provide a comprehensive, browsable reference for all in-game equipment: weapons, gear, sets, and their stats. Built to serve as the data core of a larger application with an API layer, AI capabilities, and MCP server integration planned incrementally.
+## Architecture
 
-## Stack
+```mermaid
+flowchart TD
+    DOFUS["dofusdude API\n(gzip /all endpoints)"]
+    AI["AI Client\n(Claude Code · Claude Desktop)"]
 
-- **Python 3.12+** managed with [uv](https://docs.astral.sh/uv/)
-- **Django 5.2 LTS**
-- **SQLite** (dev) / **PostgreSQL** (prod)
+    subgraph app["Django Application"]
+        SYNC["Management commands\nsync_equipment · sync_sets"]
+        MODELS["encyclopedia models\nEquipment · Set · EquipmentEffect · SetEffect"]
+        DRF["DRF REST API\n/api/equipment/ · /api/sets/ · /api/item-types/"]
+    end
 
-## Getting started
+    subgraph mcpsrv["MCP Server  ·  mcp_server/server.py"]
+        TOOLS["search_equipment · get_equipment_detail\nsearch_sets · get_set_detail\nequipment://types · sets://all"]
+    end
 
-### With Docker (recommended)
+    subgraph deploy["Deployment"]
+        LOCAL["Local — docker compose + SQLite"]
+        AWS["AWS — EC2 + RDS PostgreSQL"]
+    end
 
-```bash
-# Copy and configure environment
-cp .env.example .env
-
-# Build and start (SQLite, live reload)
-docker compose up --build
+    DOFUS -->|"HTTP GET"| SYNC
+    SYNC -->|"bulk upsert via ORM"| MODELS
+    DRF -->|"ORM queries"| MODELS
+    MODELS --> LOCAL
+    MODELS --> AWS
+    AI -->|"stdio / streamable-http"| TOOLS
+    TOOLS -->|"httpx"| DRF
 ```
 
-App is available at <http://localhost:8000>.
-
-Code changes are reflected immediately — no rebuild needed.
-
-### Without Docker
+## Quick start
 
 ```bash
-# Install dependencies
+git clone https://github.com/s3bc40/otomais-memory.git
+cd otomais-memory
+cp .env.example .env  # fill in SECRET_KEY
 uv sync
-
-# Copy and configure environment
-cp .env.example .env
-
-# Run this one liner cmd to generate your local secret key and add to your .env
-uv run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
-
-# Apply migrations
 uv run python manage.py migrate
-
-# Start the development server
+uv run python manage.py sync_equipment
+uv run python manage.py sync_sets
 uv run python manage.py runserver
 ```
 
-## Development
+**Or with Docker (recommended):**
 
 ```bash
-# Run tests
-uv run pytest
-
-# Lint and format
-uv run ruff check .
-uv run ruff format .
+cp .env.example .env
+docker compose up --build
 ```
+
+App available at <http://localhost:8000>.
 
 ## REST API
 
 Base URL: `http://localhost:8000/api/`
 
-| Endpoint | Description |
-|---|---|
-| `GET /api/equipment/` | Paginated equipment list. Supports `?q=name`, `?type=<ankama_id>`, `?is_weapon=true\|false`. |
-| `GET /api/equipment/<ankama_id>/` | Full equipment detail with effects, weapon stats, recipe, and conditions. |
-| `GET /api/item-types/` | All item types (unpaginated). |
-| `GET /api/sets/` | Paginated set list. Supports `?q=name`, `?level=<level>`, `?min_level=<n>`, `?max_level=<n>`. |
-| `GET /api/sets/<ankama_id>/` | Full set detail with effects grouped by pieces count and resolved equipment list. |
+| Endpoint | Filters | Description |
+|---|---|---|
+| `GET /api/equipment/` | `?q=`, `?type=<ankama_id>`, `?is_weapon=true\|false` | Paginated equipment list with effects |
+| `GET /api/equipment/<ankama_id>/` | — | Full detail: weapon stats, effects, recipe, conditions |
+| `GET /api/sets/` | `?q=`, `?level=`, `?min_level=`, `?max_level=` | Paginated set list with effects grouped by pieces count |
+| `GET /api/sets/<ankama_id>/` | — | Full set detail with resolved equipment list |
+| `GET /api/item-types/` | — | All item types (unpaginated) |
 
-All list endpoints return 24 results per page. Navigate with `?page=2`.
-
-## Data sync
-
-Equipment and set data are sourced from [dofusdude](https://docs.dofusdu.de/) via single gzip-compressed requests to the `/all` endpoints.
-
-```bash
-uv run python manage.py sync_equipment
-uv run python manage.py sync_sets
-```
-
-Both commands are idempotent — safe to re-run at any time. `sync_equipment` syncs ~4 350 items and ~27 000 effects in under 10 seconds.
+All paginated endpoints return 24 results per page. Navigate with `?page=2`.
 
 ## MCP server
 
-The MCP server exposes equipment search and detail tools over **stdio**, allowing Claude Code to query the encyclopedia directly.
+The MCP server connects AI clients directly to the encyclopedia. It calls the DRF API over HTTP, so it works in both transport modes without code changes.
 
-### Run locally
-
-Both the Django app and the MCP server must be running at the same time.
+**Run locally** (requires the Django app on port 8000):
 
 ```bash
-# Terminal 1 — Django REST API (MCP server calls this)
-uv run python manage.py runserver
-
-# Terminal 2 — MCP server (stdio transport)
-uv run python mcp_server/server.py
+uv run python manage.py runserver   # terminal 1
+uv run python mcp_server/server.py  # terminal 2
 ```
 
-The `.mcp.json` at the repo root registers the server automatically with Claude Code. Once both processes are up, open Claude Code in this directory and the `otomais` tools will be available.
+The `.mcp.json` at the repo root registers the server automatically with Claude Code.
 
-### Inspect with MCP Inspector
-
-[MCP Inspector](https://github.com/modelcontextprotocol/inspector) is an interactive browser UI for testing tools and resources manually without involving Claude.
+**Test with MCP Inspector:**
 
 ```bash
-# Terminal 1 — Django REST API must be running first
-uv run python manage.py runserver
-
-# Terminal 2 — launch the inspector UI (opens http://localhost:6274)
 npx @modelcontextprotocol/inspector
+# set command to: uv run python mcp_server/server.py
 ```
 
-In the inspector UI, set the command to `uv run python mcp_server/server.py` and click **Connect**. Then:
+### Tools
 
-1. Under **Resources**, click `equipment://types` to verify item types load.
-2. Under **Tools**, call `search_equipment` with `{"name": "gelano"}` to test search.
-3. Call `get_equipment_detail` with the `ankama_id` returned from the search.
-4. Call `search_sets` with `{"query": "bouftou"}` to verify grouped effects.
-5. Call `get_set_detail` with the `ankama_id` to verify the equipment list.
-
-### Available tools and resources
-
-| Name | Type | Description |
+| Tool | Parameters | Description |
 |---|---|---|
-| `equipment://types` | Resource | All item types with their `ankama_id`. Read before filtering by type. |
-| `sets://all` | Resource | All sets ordered by level. Browse before searching. |
-| `search_equipment` | Tool | Search equipment by name. Optional `type_id` and `is_weapon` filters. Returns effects, pods, set name. |
-| `get_equipment_detail` | Tool | Full detail for a single item: all images, weapon stats, effects, recipe, conditions. |
-| `search_sets` | Tool | Search sets by name with optional `min_level`/`max_level`. Returns effects grouped by pieces count. |
-| `get_set_detail` | Tool | Full set detail including resolved equipment list with effects. |
+| `search_equipment` | `name`, `type_id?`, `is_weapon?` | Search by name with optional type and weapon filters. Returns effects, pods, and set membership. |
+| `get_equipment_detail` | `ankama_id` | Full item detail: all images, weapon stats, effects, recipe, conditions. |
+| `search_sets` | `query`, `min_level=0`, `max_level=200` | Search sets by name with level range. Effects grouped by pieces count. |
+| `get_set_detail` | `ankama_id` | Full set detail with resolved equipment list and effects. |
 
-## Roadmap
+### Resources
 
-- [x] Equipment model, migration, and admin interface
-- [x] Browse and search encyclopedia views
-- [x] REST API (Django REST Framework)
-- [x] `sync_equipment` — full field mapping + EquipmentEffect sync
-- [x] MCP server — stdio transport, local Claude Code integration
-- [x] Tests — pytest-django: models, sync, DRF API client
-- [x] Set + SetEffect models, migration, and `sync_sets` command
-- [x] Dockerfile + docker-compose local stack
-- [x] Sets API — list + detail endpoints with nested effects
-- [x] MCP tools updated for sets — search_sets, get_set_detail, sets://all resource
-- [ ] Architecture diagram + final README
+| URI | Description |
+|---|---|
+| `equipment://types` | All item types with `ankama_id`. Read before filtering by type. |
+| `sets://all` | All sets ordered by level. Browse before searching. |
+
+## Test suite
+
+48 tests with pytest-django covering models, sync commands, and DRF endpoints.
+
+```bash
+uv run pytest
+```
+
+CI runs on every push and PR to `main`: lint → format check → pytest.
+
+## Key decisions
+
+- **MCP uses httpx → DRF**, not direct ORM access — the server runs as a separate process on AWS (ECS, streamable-http transport), so it must communicate over HTTP rather than sharing a database connection.
+- **Single gzip request for sync** — dofusdude's `/all` endpoint delivers all ~4 350 equipment items in one compressed payload, avoiding per-page pagination and reducing sync time to ~5 seconds.
+- **`transaction.atomic()` for the sync loop** — wrapping the entire upsert in one transaction avoids one disk flush per row on SQLite, cutting sync time from 193 s to ~5 s (38×).
+- **One codebase, env-var driven** — `DATABASE_URL` switches between SQLite (local) and RDS PostgreSQL (AWS) without any code change.
