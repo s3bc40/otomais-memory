@@ -57,7 +57,7 @@ class TestEquipmentListEndpoint:
         assert len(results) == 1
         assert results[0]["ankama_id"] == 201
 
-    def test_should_not_expose_effects_in_list_response(
+    def test_should_return_is_weapon_pods_parent_set_name_and_effects_in_list(
         self, api_client: APIClient, equipment: Equipment
     ) -> None:
         EquipmentEffect.objects.create(
@@ -70,7 +70,61 @@ class TestEquipmentListEndpoint:
         response = api_client.get("/api/equipment/")
 
         assert response.status_code == 200
-        assert "effects" not in response.json()["results"][0]
+        result = response.json()["results"][0]
+        assert "is_weapon" in result
+        assert "pods" in result
+        assert "parent_set_name" in result
+        assert result["effects"] == ["50 Vitalité"]
+
+    def test_should_filter_by_is_weapon_true(
+        self, api_client: APIClient, item_type: ItemType
+    ) -> None:
+        Equipment.objects.create(
+            ankama_id=201,
+            name="Épée Test",
+            level=5,
+            item_type=item_type,
+            is_weapon=True,
+        )
+        Equipment.objects.create(
+            ankama_id=202,
+            name="Amulette Test",
+            level=5,
+            item_type=item_type,
+            is_weapon=False,
+        )
+
+        response = api_client.get("/api/equipment/", {"is_weapon": "true"})
+
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["ankama_id"] == 201
+
+    def test_should_filter_by_is_weapon_false(
+        self, api_client: APIClient, item_type: ItemType
+    ) -> None:
+        Equipment.objects.create(
+            ankama_id=201,
+            name="Épée Test",
+            level=5,
+            item_type=item_type,
+            is_weapon=True,
+        )
+        Equipment.objects.create(
+            ankama_id=202,
+            name="Amulette Test",
+            level=5,
+            item_type=item_type,
+            is_weapon=False,
+        )
+
+        response = api_client.get("/api/equipment/", {"is_weapon": "false"})
+
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["ankama_id"] == 202
 
 
 @pytest.mark.django_db
@@ -111,21 +165,6 @@ class TestEquipmentDetailEndpoint:
         response = api_client.get("/api/equipment/99999/")
 
         assert response.status_code == 404
-
-    def test_should_not_expose_effects_in_list_response(
-        self, api_client: APIClient, equipment: Equipment
-    ) -> None:
-        EquipmentEffect.objects.create(
-            equipment=equipment,
-            effect_type_id=1,
-            effect_type_name="Vitalité",
-            formatted="50 Vitalité",
-        )
-
-        response = api_client.get("/api/equipment/")
-
-        assert response.status_code == 200
-        assert "effects" not in response.json()["results"][0]
 
     def test_should_expose_all_enriched_fields_when_detail_requested(
         self, api_client: APIClient, item_type: ItemType
