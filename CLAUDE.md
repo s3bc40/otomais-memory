@@ -69,6 +69,32 @@ Tests live in `encyclopedia/tests/` (one file per source file). Shared fixtures 
 No real HTTP calls — mock `httpx.get` at the module level with `unittest.mock.patch`.
 CI runs on every push and PR to `main` via `.github/workflows/ci.yml` (lint → format check → pytest).
 
+## MCP Server
+
+The MCP server at `mcp_server/server.py` exposes the encyclopedia via httpx calls to the DRF API.
+This keeps the architecture consistent: stdio locally, streamable-http on AWS ECS (one-line swap in `__main__`).
+
+Run locally (requires dev server at `http://127.0.0.1:8000`):
+```bash
+uv run python mcp_server/server.py
+```
+
+### Resources
+
+| URI | Description |
+|-----|-------------|
+| `equipment://types` | All ItemType records — read before filtering search by type |
+| `sets://all` | All Set records ordered by level asc |
+
+### Tools
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `search_equipment` | `name`, `type_id?`, `is_weapon?` | Search equipment by name. Returns enriched list with effects, pods, weapon flag, and set name. |
+| `get_equipment_detail` | `ankama_id` | Full detail: all images, weapon stats, effects, recipe, conditions, set info. |
+| `search_sets` | `query`, `min_level=0`, `max_level=200` | Search sets by name with level range. Effects grouped by pieces count. |
+| `get_set_detail` | `ankama_id` | Full set detail including resolved equipment list with effects. |
+
 ## Workflow
 
 At the end of each completed step, always write a PM report covering: what changed, the commit hash, test results, and any notable decisions or bugs fixed.

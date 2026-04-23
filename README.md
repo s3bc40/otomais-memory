@@ -64,11 +64,11 @@ Base URL: `http://localhost:8000/api/`
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/equipment/` | Paginated equipment list. Supports `?q=name` and `?type=<ankama_id>`. |
-| `GET /api/equipment/<ankama_id>/` | Full equipment detail. |
+| `GET /api/equipment/` | Paginated equipment list. Supports `?q=name`, `?type=<ankama_id>`, `?is_weapon=true\|false`. |
+| `GET /api/equipment/<ankama_id>/` | Full equipment detail with effects, weapon stats, recipe, and conditions. |
 | `GET /api/item-types/` | All item types (unpaginated). |
-| `GET /api/sets/` | Paginated set list. Supports `?q=name` and `?level=<level>`. |
-| `GET /api/sets/<ankama_id>/` | Full set detail with nested effects per pieces count. |
+| `GET /api/sets/` | Paginated set list. Supports `?q=name`, `?level=<level>`, `?min_level=<n>`, `?max_level=<n>`. |
+| `GET /api/sets/<ankama_id>/` | Full set detail with effects grouped by pieces count and resolved equipment list. |
 
 All list endpoints return 24 results per page. Navigate with `?page=2`.
 
@@ -118,14 +118,19 @@ In the inspector UI, set the command to `uv run python mcp_server/server.py` and
 1. Under **Resources**, click `equipment://types` to verify item types load.
 2. Under **Tools**, call `search_equipment` with `{"name": "gelano"}` to test search.
 3. Call `get_equipment_detail` with the `ankama_id` returned from the search.
+4. Call `search_sets` with `{"query": "bouftou"}` to verify grouped effects.
+5. Call `get_set_detail` with the `ankama_id` to verify the equipment list.
 
 ### Available tools and resources
 
 | Name | Type | Description |
 |---|---|---|
 | `equipment://types` | Resource | All item types with their `ankama_id`. Read before filtering by type. |
-| `search_equipment` | Tool | Search equipment by name, optionally filtered by `type_id`. |
-| `get_equipment_detail` | Tool | Full detail for a single item by `ankama_id`. |
+| `sets://all` | Resource | All sets ordered by level. Browse before searching. |
+| `search_equipment` | Tool | Search equipment by name. Optional `type_id` and `is_weapon` filters. Returns effects, pods, set name. |
+| `get_equipment_detail` | Tool | Full detail for a single item: all images, weapon stats, effects, recipe, conditions. |
+| `search_sets` | Tool | Search sets by name with optional `min_level`/`max_level`. Returns effects grouped by pieces count. |
+| `get_set_detail` | Tool | Full set detail including resolved equipment list with effects. |
 
 ## Roadmap
 
@@ -138,5 +143,5 @@ In the inspector UI, set the command to `uv run python mcp_server/server.py` and
 - [x] Set + SetEffect models, migration, and `sync_sets` command
 - [x] Dockerfile + docker-compose local stack
 - [x] Sets API — list + detail endpoints with nested effects
-- [ ] MCP tools updated for sets + cloud deployment (AWS ECS / streamable-http)
+- [x] MCP tools updated for sets — search_sets, get_set_detail, sets://all resource
 - [ ] Architecture diagram + final README
