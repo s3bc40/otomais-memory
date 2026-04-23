@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from encyclopedia.models import Set, SetEffect
+from encyclopedia.models import Equipment, ItemType, Set, SetEffect
 
 
 @pytest.fixture
@@ -65,6 +65,61 @@ class TestSetListEndpoint:
         result = response.json()["results"][0]
         assert "effects" not in result
         assert "equipment_ids" not in result
+
+    def test_should_return_effects_by_pieces_grouped_in_list(
+        self, api_client: APIClient, equipment_set: Set
+    ) -> None:
+        SetEffect.objects.create(
+            set=equipment_set,
+            pieces_count=2,
+            effect_type_id=1,
+            effect_type_name="Vitalité",
+            formatted="50 Vitalité",
+        )
+        SetEffect.objects.create(
+            set=equipment_set,
+            pieces_count=2,
+            effect_type_id=2,
+            effect_type_name="Force",
+            formatted="20 Force",
+        )
+        SetEffect.objects.create(
+            set=equipment_set,
+            pieces_count=3,
+            effect_type_id=3,
+            effect_type_name="Intelligence",
+            formatted="30 Intelligence",
+        )
+
+        response = api_client.get("/api/sets/")
+
+        assert response.status_code == 200
+        result = response.json()["results"][0]
+        assert "effects_by_pieces" in result
+        assert result["effects_by_pieces"]["2"] == ["50 Vitalité", "20 Force"]
+        assert result["effects_by_pieces"]["3"] == ["30 Intelligence"]
+
+    def test_should_filter_by_min_level(self, api_client: APIClient, db: None) -> None:
+        Set.objects.create(ankama_id=1, name="Set Faible", level=5)
+        Set.objects.create(ankama_id=2, name="Set Fort", level=20)
+
+        response = api_client.get("/api/sets/", {"min_level": 10})
+
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["name"] == "Set Fort"
+
+    def test_should_filter_by_max_level(self, api_client: APIClient, db: None) -> None:
+        Set.objects.create(ankama_id=1, name="Set Faible", level=5)
+        Set.objects.create(ankama_id=2, name="Set Fort", level=20)
+
+        response = api_client.get("/api/sets/", {"max_level": 15})
+
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["name"] == "Set Faible"
 
 
 @pytest.mark.django_db
@@ -135,3 +190,41 @@ class TestSetDetailEndpoint:
         assert isinstance(data["effects"], list)
         assert len(data["effects"]) == 1
         assert data["effects"][0]["pieces_count"] == 2
+
+    def test_should_return_equipment_list_in_detail_with_effects(
+        self, api_client: APIClient, equipment_set: Set, item_type: ItemType
+    ) -> None:
+        eq = Equipment.objects.create(
+            ankama_id=101,
+            name="Amulette du Bouftou",
+            level=1,
+            item_type=item_type,
+            is_weapon=False,
+        )
+        Equipment.objects.create(
+            ankama_id=102,
+            name="Épée du Bouftou",
+            level=2,
+            item_type=item_type,
+            is_weapon=True,
+        )
+        from encyclopedia.models import EquipmentEffect
+
+        EquipmentEffect.objects.create(
+            equipment=eq,
+            effect_type_id=1,
+            effect_type_name="Vitalité",
+            formatted="20 Vitalité",
+        )
+
+        response = api_client.get(f"/api/sets/{equipment_set.ankama_id}/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "equipment_list" in data
+        eq_list = data["equipment_list"]
+        assert len(eq_list) == 2
+        first = next(e for e in eq_list if e["ankama_id"] == 101)
+        assert first["name"] == "Amulette du Bouftou"
+        assert first["is_weapon"] is False
+        assert first["effects"] == ["20 Vitalité"]
