@@ -4,12 +4,13 @@
 #                      mcp.run(transport='streamable-http', host='0.0.0.0', port=8001)
 # Tool and resource logic is identical across transports.
 
+import os
 import httpx
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("otomais")
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("MCP_BASE_URL", "http://127.0.0.1:8000")
 TIMEOUT = 10.0
 
 
