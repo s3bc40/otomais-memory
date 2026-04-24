@@ -1,6 +1,6 @@
 # Transport is env-var driven (twelve-factor):
 #   MCP_TRANSPORT=stdio            — local dev and Claude Code integration (default)
-#   MCP_TRANSPORT=streamable-http  — remote deploy (Pi via Tailscale, AWS)
+#   MCP_TRANSPORT=http             — remote deploy (Pi via Tailscale, AWS)
 # Tool and resource logic is identical across transports.
 
 from pathlib import Path
@@ -11,7 +11,11 @@ from mcp.server.fastmcp import FastMCP
 env = Env()
 env.read_env(Path(__file__).resolve().parent.parent / ".env")
 
-mcp = FastMCP("otomais")
+transport = env.str("MCP_TRANSPORT", "stdio")
+host = env.str("MCP_HOST", "127.0.0.1")
+port = env.int("MCP_PORT", 8001)
+
+mcp = FastMCP("otomais", host=host, port=port)
 
 BASE_URL = env.str("MCP_BASE_URL", "http://127.0.0.1:8000")
 TIMEOUT = 10.0
@@ -250,13 +254,10 @@ def _format_effects_by_pieces(grouped: dict[int, list[str]]) -> str:
     )
 
 
-transport = env.str("MCP_TRANSPORT", "stdio")
-port = env.int("MCP_PORT", 8001)
-
 if __name__ == "__main__":
-    if transport == "streamable-http":
-        print(f"Starting MCP server (streamable-http) on port {port}")
-        mcp.run(transport="streamable-http", port=port)
+    if transport != "stdio":
+        print(f"Starting MCP server ({transport}) on {host}:{port}")
+        mcp.run(transport=transport)
     else:
         print("Starting MCP server (stdio)")
         mcp.run(transport="stdio")

@@ -36,8 +36,9 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated allowed hosts |
 | `DATABASE_URL` | `sqlite:///db.sqlite3` | Database URL (SQLite or PostgreSQL) |
 | `MCP_BASE_URL` | `http://127.0.0.1:8000` | Django API base URL for the MCP server |
-| `MCP_TRANSPORT` | `stdio` | MCP transport: `stdio` (local) or `streamable-http` (remote) |
-| `MCP_PORT` | `8001` | Port for streamable-http transport |
+| `MCP_HOST` | `127.0.0.1` | Host to bind for HTTP transport |
+| `MCP_TRANSPORT` | `stdio` | MCP transport: `stdio` (local) or `http` (remote) |
+| `MCP_PORT` | `8001` | Port for HTTP transport |
 
 PostgreSQL example: `DATABASE_URL=postgres://user:password@host:5432/dbname`
 
