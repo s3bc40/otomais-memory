@@ -29,6 +29,9 @@ jobs:
 
       - name: Run benchmarks
         uses: CodSpeedHQ/action@v4
+        env:
+          SECRET_KEY: ci-secret-key-not-used-in-production
+          DEBUG: "false"
         with:
           mode: simulation
           run: uv run pytest encyclopedia/tests/test_benchmarks.py --codspeed
