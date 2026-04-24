@@ -1,7 +1,6 @@
-# Transport roadmap:
-#   stdio            — local dev and Claude Code integration (current)
-#   streamable-http  — AWS ECS deployment (one-line swap):
-#                      mcp.run(transport='streamable-http', host='0.0.0.0', port=8001)
+# Transport is env-var driven (twelve-factor):
+#   MCP_TRANSPORT=stdio            — local dev and Claude Code integration (default)
+#   MCP_TRANSPORT=streamable-http  — remote deploy (Pi via Tailscale, AWS)
 # Tool and resource logic is identical across transports.
 
 import os
@@ -247,5 +246,11 @@ def _format_effects_by_pieces(grouped: dict[int, list[str]]) -> str:
     )
 
 
+transport = os.getenv("MCP_TRANSPORT", "stdio")
+port = int(os.getenv("MCP_PORT", "8001"))
+
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    if transport == "streamable-http":
+        mcp.run(transport="streamable-http", port=port)
+    else:
+        mcp.run(transport="stdio")
