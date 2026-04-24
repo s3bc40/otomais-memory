@@ -5,7 +5,11 @@
 
 import os
 import httpx
+from environs import Env
 from mcp.server.fastmcp import FastMCP
+
+env = Env()
+env.read_env()
 
 mcp = FastMCP("otomais")
 
