@@ -3,7 +3,6 @@
 #   MCP_TRANSPORT=streamable-http  — remote deploy (Pi via Tailscale, AWS)
 # Tool and resource logic is identical across transports.
 
-import os
 from pathlib import Path
 import httpx
 from environs import Env
@@ -14,7 +13,7 @@ env.read_env(Path(__file__).resolve().parent.parent / ".env")
 
 mcp = FastMCP("otomais")
 
-BASE_URL = os.getenv("MCP_BASE_URL", "http://127.0.0.1:8000")
+BASE_URL = env.str("MCP_BASE_URL", "http://127.0.0.1:8000")
 TIMEOUT = 10.0
 
 
@@ -251,8 +250,8 @@ def _format_effects_by_pieces(grouped: dict[int, list[str]]) -> str:
     )
 
 
-transport = os.getenv("MCP_TRANSPORT", "stdio")
-port = int(os.getenv("MCP_PORT", "8001"))
+transport = env.str("MCP_TRANSPORT", "stdio")
+port = env.int("MCP_PORT", 8001)
 
 if __name__ == "__main__":
     if transport == "streamable-http":
