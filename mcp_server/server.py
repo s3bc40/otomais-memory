@@ -251,6 +251,8 @@ port = int(os.getenv("MCP_PORT", "8001"))
 
 if __name__ == "__main__":
     if transport == "streamable-http":
+        print(f"Starting MCP server (streamable-http) on port {port}")
         mcp.run(transport="streamable-http", port=port)
     else:
+        print("Starting MCP server (stdio)")
         mcp.run(transport="stdio")
