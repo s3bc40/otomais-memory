@@ -6,7 +6,7 @@
 from pathlib import Path
 import httpx
 from environs import Env
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 env = Env()
 env.read_env(Path(__file__).resolve().parent.parent / ".env")
@@ -15,7 +15,7 @@ transport = env.str("MCP_TRANSPORT", "stdio")
 host = env.str("MCP_HOST", "127.0.0.1")
 port = env.int("MCP_PORT", 8001)
 
-mcp = FastMCP("otomais", host=host, port=port)
+mcp = FastMCP("otomais")
 
 BASE_URL = env.str("MCP_BASE_URL", "http://127.0.0.1:8000")
 TIMEOUT = 10.0
@@ -257,7 +257,7 @@ def _format_effects_by_pieces(grouped: dict[int, list[str]]) -> str:
 if __name__ == "__main__":
     if transport != "stdio":
         print(f"Starting MCP server ({transport}) on {host}:{port}")
-        mcp.run(transport=transport)
+        mcp.run(transport=transport,  host=host, port=port)
     else:
         print("Starting MCP server (stdio)")
         mcp.run(transport="stdio")

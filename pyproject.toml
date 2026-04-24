@@ -9,6 +9,7 @@ dependencies = [
     "django==5.2.13",
     "djangorestframework>=3.17.1",
     "environs>=15.0.1",
+    "fastmcp>=3.2.4",
     "gunicorn>=25.3.0",
     "httpx>=0.28.1",
     "mcp>=1.27.0",
