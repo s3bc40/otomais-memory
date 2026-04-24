@@ -257,7 +257,7 @@ def _format_effects_by_pieces(grouped: dict[int, list[str]]) -> str:
 if __name__ == "__main__":
     if transport != "stdio":
         print(f"Starting MCP server ({transport}) on {host}:{port}")
-        mcp.run(transport=transport,  host=host, port=port)
+        mcp.run(transport=transport, host=host, port=port)
     else:
         print("Starting MCP server (stdio)")
         mcp.run(transport="stdio")
