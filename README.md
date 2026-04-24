@@ -9,6 +9,7 @@ Django 5.2 backend exposing a Dofus encyclopedia API and a native MCP server for
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-prod-4169e1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ed?logo=docker&logoColor=white)
 ![CI](https://img.shields.io/github/actions/workflow/status/s3bc40/otomais-memory/ci.yml?branch=main&label=CI)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/s3bc40/otomais-memory?utm_source=badge)
 
 ## Architecture
 
