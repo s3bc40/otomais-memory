@@ -4,12 +4,13 @@
 # Tool and resource logic is identical across transports.
 
 import os
+from pathlib import Path
 import httpx
 from environs import Env
 from mcp.server.fastmcp import FastMCP
 
 env = Env()
-env.read_env()
+env.read_env(Path(__file__).resolve().parent.parent / ".env")
 
 mcp = FastMCP("otomais")
 
