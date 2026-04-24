@@ -72,7 +72,11 @@ CI runs on every push and PR to `main` via `.github/workflows/ci.yml` (lint → 
 ## MCP Server
 
 The MCP server at `mcp_server/server.py` exposes the encyclopedia via httpx calls to the DRF API.
-This keeps the architecture consistent: stdio locally, streamable-http on AWS ECS (one-line swap in `__main__`).
+Transport is env-var driven (`MCP_TRANSPORT`): `stdio` for local Claude Code (default), `streamable-http` for remote deploys (Pi via Tailscale). `MCP_PORT` defaults to `8001`.
+
+Two config files at repo root:
+- `.mcp.json` — stdio, default local, committed
+- `.mcp.remote.json` — streamable-http example (Pi via Tailscale or future remote deploy); copy to `.mcp.json` and update the URL to switch
 
 Run locally (requires dev server at `http://127.0.0.1:8000`):
 ```bash

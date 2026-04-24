@@ -90,6 +90,17 @@ uv run python mcp_server/server.py  # terminal 2
 
 The `.mcp.json` at the repo root registers the server automatically with Claude Code.
 
+## MCP Configuration
+
+Two config files at repo root cover both connection modes:
+
+| File | Mode | Use case |
+|---|---|---|
+| `.mcp.json` | stdio (default) | Local Claude Code — launches the server as a subprocess |
+| `.mcp.remote.json` | streamable-http | Pi via Tailscale or any remote deploy |
+
+To switch to remote mode: copy `.mcp.remote.json` to `.mcp.json` and replace `<tailscale-ip-or-host>` with the actual host. On the remote machine, set `MCP_TRANSPORT=streamable-http` and `MCP_BASE_URL` to the Django API URL.
+
 **Test with MCP Inspector:**
 
 ```bash
@@ -125,7 +136,9 @@ CI runs on every push and PR to `main`: lint → format check → pytest.
 
 ## Key decisions
 
-- **MCP uses httpx → DRF**, not direct ORM access — the server runs as a separate process on AWS (ECS, streamable-http transport), so it must communicate over HTTP rather than sharing a database connection.
+- **MCP uses httpx → DRF**, not direct ORM access — the server runs as a separate process and must communicate over HTTP rather than sharing a database connection.
+- **MCP transport env-var driven** — `MCP_TRANSPORT=stdio` (default, local Claude Code) / `streamable-http` (remote, Pi via Tailscale). Zero code changes between contexts — twelve-factor pattern.
 - **Single gzip request for sync** — dofusdude's `/all` endpoint delivers all ~4 350 equipment items in one compressed payload, avoiding per-page pagination and reducing sync time to ~5 seconds.
 - **`transaction.atomic()` for the sync loop** — wrapping the entire upsert in one transaction avoids one disk flush per row on SQLite, cutting sync time from 193 s to ~5 s (38×).
-- **One codebase, env-var driven** — `DATABASE_URL` switches between SQLite (local) and RDS PostgreSQL (AWS) without any code change.
+- **One codebase, env-var driven** — `DATABASE_URL` switches between SQLite (local) and RDS PostgreSQL (prod) without any code change.
+- **One-shot AWS deploy** — EC2 t3.micro + RDS db.t4g.micro PostgreSQL 17 + Nginx + Docker (eu-west-3). Infrastructure stopped after screenshots — signal captured without recurring cost.

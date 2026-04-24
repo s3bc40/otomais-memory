@@ -2,7 +2,11 @@
   "mcpServers": {
     "otomais": {
       "command": "uv",
-      "args": ["run", "python", "mcp_server/server.py"]
+      "args": ["run", "python", "mcp_server/server.py"],
+      "env": {
+        "MCP_BASE_URL": "http://127.0.0.1:8000",
+        "MCP_TRANSPORT": "stdio"
+      }
     }
   }
 }
