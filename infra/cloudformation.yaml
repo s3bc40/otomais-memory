@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  otomais-memory infrastructure —
+  EC2 t3.micro + RDS db.t4g.micro PostgreSQL 17
+  + Nginx + Docker. Single deployable stack.
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair
+      to enable SSH access to the instance.
+  
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Master password for RDS PostgreSQL.
+  
+  AllowedSSHCIDR:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: >
+      CIDR block allowed to SSH into EC2.
+      Restrict to your IP for security e.g.
+      203.0.113.0/32
+  
+  DjangoSecretKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Django SECRET_KEY value.
+
+Resources:
+  # --- VPC ---
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      # necessary for RDS to resolve instance endpoints
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: otomais-vpc
+  
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: otomais-igw
+  
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  
+  # --- SUBNETS ---
+  # Reminder: 5 IPs reserved by AWS in each subnet
+  # 10.0.0.0 (Network address)
+  # 10.0.0.1 (Reserved by AWS for the VPC router)
+  # 10.0.0.2 (Reserved by AWS for the Amazon-provided DNS server)
+  # 10.0.0.3 (Reserved by AWS for future use)
+  # 10.0.0.255 (Network broadcast address; AWS does not support broadcast in VPCs)
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.1.0/24"
+      AvailabilityZone: "eu-west-3a"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: otomais-public-subnet
+      
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.2.0/24"
+      AvailabilityZone: "eu-west-3a"
+      Tags:
+        - Key: Name
+          Value: otomais-private-subnet-a
+  
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.3.0/24"
+      AvailabilityZone: "eu-west-3b"
+      Tags:
+        - Key: Name
+          Value: otomais-private-subnet-b
+  
+  # --- ROUTE TABLES ---
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: otomais-public-rt
+  
+  PublicRoute:
+    Type: AWS::EC2::Route
+    # apply ordering constraint to ensure IGW is attached before creating route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+  
+  # Associate public subnet with public route table
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
