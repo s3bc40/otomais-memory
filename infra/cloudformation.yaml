@@ -4,19 +4,14 @@ Description: >
   EC2 t3.micro + RDS db.t4g.micro PostgreSQL 17
   + Nginx + Docker. Single deployable stack.
 
-Parameters:
-  KeyPairName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Description: Name of an existing EC2 KeyPair
-      to enable SSH access to the instance.
-  
+Parameters:  
   DBPassword:
     Type: String
     NoEcho: true
     MinLength: 8
     Description: Master password for RDS PostgreSQL.
   
-  AllowedSSHCIDR:
+  AllowedSSHCidr:
     Type: String
     Default: "0.0.0.0/0"
     Description: >
@@ -29,6 +24,14 @@ Parameters:
     NoEcho: true
     MinLength: 32
     Description: Django SECRET_KEY value.
+  
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64'
+    Description: >
+      Latest Amazon Linux 2023 x86_64 AMI — auto-resolved
+      via SSM public parameter at deploy time.
+      No manual update needed across regions.
 
 Resources:
   # --- VPC ---
@@ -118,3 +121,230 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
+
+  # --- SECURITY GROUPS ---
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EC2 web server
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+          Description: Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: !Ref AllowedSSHCidr
+          Description: Allow Django dev server from specified CIDR
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: "0.0.0.0/0"
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: otomais-web-sg
+  
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref WebSecurityGroup
+          Description: PostgreSQL from EC2 only
+      Tags:
+        - Key: Name
+          Value: otomais-rds-sg
+  
+  # --- RDS INSTANCE ---
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS instance
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      Tags:
+        - Key: Name
+          Value: otomais-db-subnet-group
+  
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      DBInstanceIdentifier: otomais-db
+      DBName: otomais
+      Engine: postgres
+      EngineVersion: "17"
+      DBInstanceClass: db.t4g.micro
+      StorageType: gp2
+      AllocatedStorage: 20
+      MasterUsername: otomais_admin
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+      AutoMinorVersionUpgrade: false
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+      Tags:
+        - Key: Name
+          Value: otomais-db
+  
+  # --- IAM ---
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: otomais-ec2-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: otomais-ec2-role
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: otomais-ec2-profile
+      Roles:
+        - !Ref EC2InstanceRole
+  
+  # --- Elastic IP for EC2 ---
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: otomais-eip
+  
+  # --- EC2 INSTANCE ---
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - DBInstance
+      - ElasticIP
+    Properties:
+      InstanceType: t3.micro
+      ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref WebSecurityGroup
+      Tags:
+        - Key: Name
+          Value: otomais-ec2
+      # !Sub allows us to inject parameters into the user data script
+      # DB endpoint address automatically resolved at deploy time via CloudFormation intrinsic functions
+      # --restart unless-stopped ensures the container will restart on EC2 reboots
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+
+          # System update + install Docker + Nginx + Git
+          dnf update -y
+          dnf install -y docker nginx git
+          systemctl enable --now docker
+          usermod -aG docker ec2-user
+
+          # Clone repo
+          cd /home/ec2-user
+          git clone https://github.com/s3bc40/otomais-memory
+          cd otomais-memory
+
+          # Write .env
+          cat > .env <<EOF
+          SECRET_KEY=${DjangoSecretKey}
+          DEBUG=False
+          ALLOWED_HOSTS=${ElasticIP}
+          DATABASE_URL=postgres://otomais_admin:${DBPassword}@${DBInstance.Endpoint.Address}:5432/otomais
+          CSRF_TRUSTED_ORIGINS=http://${ElasticIP}
+          MCP_TRANSPORT=stdio
+          MCP_PORT=8001
+          EOF
+
+          # Build + run container
+          docker build -t otomais .
+          docker run -d --name otomais \
+            --env-file .env \
+            --restart unless-stopped \
+            -p 8000:8000 \
+            otomais
+
+          # Wait for container to be ready
+          sleep 10
+
+          # Migrations + sync
+          docker exec otomais uv run python manage.py migrate
+          docker exec otomais uv run python manage.py sync_equipment
+          docker exec otomais uv run python manage.py sync_sets
+
+          # Static files
+          mkdir -p /home/ec2-user/staticfiles
+          docker cp otomais:/app/staticfiles/. \
+            /home/ec2-user/staticfiles/
+          chmod -R 755 /home/ec2-user/staticfiles/
+          chmod 755 /home/ec2-user/
+
+          # Nginx config
+          cat > /etc/nginx/conf.d/otomais.conf <<EOF
+          server {
+              listen 80;
+              server_name ${ElasticIP};
+
+              location /static/ {
+                  alias /home/ec2-user/staticfiles/;
+              }
+
+              location / {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              }
+          }
+          EOF
+
+          nginx -t
+          systemctl enable --now nginx
+    
+  # EIP association to EC2
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref EC2Instance
+      EIP: !Ref ElasticIP
+  
+  # --- OUTPUTS ---
+  Outputs:
+    AppURL:
+      Description: URL to access the application
+      Value: !Sub "http://${ElasticIP}"
+  
+  ElasticIPAddress:
+    Description: Elastic IP address of the EC2 instance
+    Value: !Ref ElasticIP
+  
+  RDSEndpoint:
+    Description: Endpoint address of the RDS instance
+    Value: !GetAtt DBInstance.Endpoint.Address
+  
+  SSMConnectionCommand:
+    Description: Command to connect to EC2 via SSM Session Manager
+    Value: !Sub "aws ssm start-session --target ${EC2Instance} --region eu-west-3"
