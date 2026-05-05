@@ -100,7 +100,19 @@ Two config files at repo root cover both connection modes:
 | `.mcp.json` | stdio (default) | Local Claude Code — launches the server as a subprocess |
 | `.mcp.remote.json` | streamable-http | Pi via Tailscale or any remote deploy |
 
-To switch to remote mode: copy `.mcp.remote.json` to `.mcp.json` and replace `<tailscale-ip-or-host>` with the actual host. On the remote machine, set `MCP_TRANSPORT=streamable-http` and `MCP_BASE_URL` to the Django API URL.
+**Switch to HTTP mode** (remote host — Pi via Tailscale, EC2, etc.):
+
+1. Copy `.mcp.remote.json` to `.mcp.json` and replace `<tailscale-ip-or-host>` with the actual host.
+2. On the remote machine, set these env vars in `.env`:
+
+```bash
+MCP_TRANSPORT=streamable-http   # switch from stdio to HTTP
+MCP_BASE_URL=http://<django-host>:8000  # where the Django API is reachable
+MCP_HOST=0.0.0.0                # bind to all interfaces (default: 127.0.0.1)
+MCP_PORT=8001                   # port the MCP server listens on (default: 8001)
+```
+
+Then start the server the same way — `MCP_TRANSPORT` drives the rest, no code changes needed.
 
 **Test with MCP Inspector:**
 
@@ -124,6 +136,10 @@ npx @modelcontextprotocol/inspector
 |---|---|
 | `equipment://types` | All item types with `ankama_id`. Read before filtering by type. |
 | `sets://all` | All sets ordered by level. Browse before searching. |
+
+## Deployment
+
+See [`docs/deployment.md`](docs/deployment.md) for the full AWS guide (CloudFormation, EC2, RDS PostgreSQL, SSM access, teardown).
 
 ## Test suite
 
