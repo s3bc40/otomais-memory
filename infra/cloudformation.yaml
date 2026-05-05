@@ -239,6 +239,12 @@ Resources:
     DependsOn:
       - DBInstance
       - ElasticIP
+    CreationPolicy:
+      # Wait for the cfn-signal from the user data script
+      # Timeout of 25 minutes, count of 1 since we only have one instance to signal
+      ResourceSignal:
+        Timeout: PT25M
+        Count: 1
     Properties:
       InstanceType: t3.micro
       ImageId: !Ref LatestAmiId
@@ -323,6 +329,14 @@ Resources:
 
           nginx -t
           systemctl enable --now nginx
+
+          # Signal CloudFormation success or failure
+          # $? captures exit code of last command
+          # set -e at top ensures script exits on any failure
+          /opt/aws/bin/cfn-signal -e $? \
+            --stack ${AWS::StackName} \
+            --resource EC2Instance \
+            --region ${AWS::Region}
     
   # EIP association to EC2
   EIPAssociation:
