@@ -331,12 +331,12 @@ Resources:
       InstanceId: !Ref EC2Instance
       EIP: !Ref ElasticIP
   
-  # --- OUTPUTS ---
-  Outputs:
-    AppURL:
-      Description: URL to access the application
-      Value: !Sub "http://${ElasticIP}"
-  
+# --- OUTPUTS ---
+Outputs:
+  AppURL:
+    Description: URL to access the application
+    Value: !Sub "http://${ElasticIP}"
+
   ElasticIPAddress:
     Description: Elastic IP address of the EC2 instance
     Value: !Ref ElasticIP
