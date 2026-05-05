@@ -103,6 +103,10 @@ uv run python mcp_server/server.py
 | `search_sets` | `query`, `min_level=0`, `max_level=200` | Search sets by name with level range. Effects grouped by pieces count. |
 | `get_set_detail` | `ankama_id` | Full set detail including resolved equipment list with effects. |
 
+## Deployment
+
+See `docs/deployment.md` for the full deployment guide (AWS CloudFormation, EC2, RDS).
+
 ## Workflow
 
 At the end of each completed step, always write a PM report covering: what changed, the commit hash, test results, and any notable decisions or bugs fixed.
